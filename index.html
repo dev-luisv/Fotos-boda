@@ -86,38 +86,73 @@
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(192, 140, 94, 0.3);
         }
-        
-        .success-message {
+
+        /* Notificaciones */
+        .alert {
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+            font-weight: 500;
             display: none;
-            color: #4a8c5e;
-            margin-top: 2rem;
-            padding: 1rem;
-            background: #f0f8f2;
-            border-radius: 8px;
-            animation: fadeIn 0.5s ease;
         }
-        
+
+        .success {
+            background-color: #e6f7ee;
+            color: #0a5c36;
+            border-left: 4px solid #0a5c36;
+        }
+
+        .error {
+            background-color: #ffebee;
+            color: #c62828;
+            border-left: 4px solid #c62828;
+        }
+
+        .progress-container {
+            width: 100%;
+            background: #f3f3f3;
+            margin: 20px 0;
+            border-radius: 5px;
+            display: none;
+        }
+
         .progress-bar {
+            height: 20px;
+            border-radius: 5px;
+            background: #8c6a56;
+            transition: width 0.3s;
             width: 0%;
-            height: 6px;
-            background: #d4a373;
-            border-radius: 3px;
-            margin-top: 1rem;
-            transition: width 0.3s ease;
         }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+
+        #progress-text {
+            display: block;
+            text-align: center;
+            font-size: 12px;
+            color: #5a4a42;
+            padding: 5px 0;
         }
-        
+
+        .thumbnails {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 15px;
+        }
+
+        .thumbnails img {
+            height: 60px;
+            margin: 5px;
+            border-radius: 4px;
+            object-fit: cover;
+            border: 1px solid #eee;
+        }
+
         footer {
             margin-top: 3rem;
             font-size: 0.8rem;
             color: #999;
         }
         
-        /* Responsive */
         @media (max-width: 640px) {
             .container {
                 margin: 1rem;
@@ -135,6 +170,22 @@
         <h1>Gracias por acompañarnos</h1>
         <p class="subtitle">Sube aquí tus fotos para nuestro álbum</p>
         
+        <!-- Notificaciones -->
+        <div class="alert success" id="success-message">
+            ✅ ¡Fotos subidas correctamente! Gracias por compartir este momento.
+            <div class="thumbnails" id="uploaded-thumbnails"></div>
+        </div>
+        
+        <div class="alert error" id="error-message">
+            ❌ Ocurrió un error al subir. Por favor intenta nuevamente.
+        </div>
+        
+        <div class="progress-container" id="progress-container">
+            <div class="progress-bar" id="progress-bar"></div>
+            <span id="progress-text">0%</span>
+        </div>
+        
+        <!-- Formulario de subida -->
         <form id="upload-form">
             <div class="upload-area" id="drop-area">
                 <div class="upload-icon">📷</div>
@@ -142,13 +193,8 @@
                 <p><small>(Formatos: JPG, PNG | Máx. 10MB por foto)</small></p>
                 <input type="file" id="file-input" class="file-input" accept="image/jpeg, image/png" multiple>
             </div>
-            <div class="progress-bar" id="progress-bar"></div>
-            <button type="submit" class="upload-button">Enviar fotos</button>
+            <button type="submit" class="upload-button" id="submit-button">Enviar fotos</button>
         </form>
-        
-        <div class="success-message" id="success-message">
-            ¡Fotos subidas con éxito! Gracias por compartir este momento con nosotros.
-        </div>
         
         <footer>
             Con amor, los novios
@@ -163,7 +209,12 @@
             const fileInput = document.getElementById('file-input');
             const uploadForm = document.getElementById('upload-form');
             const successMessage = document.getElementById('success-message');
+            const errorMessage = document.getElementById('error-message');
+            const progressContainer = document.getElementById('progress-container');
             const progressBar = document.getElementById('progress-bar');
+            const progressText = document.getElementById('progress-text');
+            const submitButton = document.getElementById('submit-button');
+            const thumbnailsContainer = document.getElementById('uploaded-thumbnails');
             
             // Configuración de Cloudinary
             const cloudName = 'dyja1rhhr';
@@ -205,6 +256,7 @@
                 const dt = e.dataTransfer;
                 const files = dt.files;
                 fileInput.files = files;
+                updateFileCount(files.length);
             }
             
             // Click en el área para abrir el selector de archivos
@@ -212,33 +264,64 @@
                 fileInput.click();
             });
             
+            // Actualizar cuando se seleccionan archivos
+            fileInput.addEventListener('change', function() {
+                updateFileCount(this.files.length);
+            });
+            
+            function updateFileCount(count) {
+                if (count > 0) {
+                    dropArea.querySelector('p').textContent = `${count} foto(s) seleccionada(s)`;
+                } else {
+                    dropArea.querySelector('p').textContent = 'Arrastra tus fotos aquí o haz clic para seleccionar';
+                }
+            }
+            
             // Manejar el envío del formulario
             uploadForm.addEventListener('submit', function(e) {
                 e.preventDefault();
                 
                 const files = fileInput.files;
                 if (files.length === 0) {
-                    alert('Por favor, selecciona al menos una foto.');
+                    showError('Por favor, selecciona al menos una foto.');
                     return;
                 }
+                
+                // Validar tamaño máximo
+                const oversizeFiles = Array.from(files).filter(file => file.size > 10 * 1024 * 1024);
+                if (oversizeFiles.length > 0) {
+                    showError(`Algunas fotos superan 10MB: ${oversizeFiles.map(f => f.name).join(', ')}`);
+                    return;
+                }
+                
+                submitButton.disabled = true;
+                submitButton.textContent = 'Subiendo...';
+                thumbnailsContainer.innerHTML = '';
                 
                 uploadFiles(files);
             });
             
+            function showError(message) {
+                errorMessage.textContent = message;
+                errorMessage.style.display = 'block';
+                setTimeout(() => {
+                    errorMessage.style.display = 'none';
+                }, 5000);
+            }
+            
             // Función para subir archivos a Cloudinary
             function uploadFiles(files) {
+                // Resetear estado
+                successMessage.style.display = 'none';
+                errorMessage.style.display = 'none';
+                progressContainer.style.display = 'block';
                 progressBar.style.width = '0%';
+                progressText.textContent = '0%';
                 
                 let uploadedCount = 0;
                 const totalFiles = files.length;
                 
                 Array.from(files).forEach(file => {
-                    // Verificar tamaño del archivo (max 10MB)
-                    if (file.size > 10 * 1024 * 1024) {
-                        alert(`El archivo "${file.name}" es demasiado grande (máximo 10MB)`);
-                        return;
-                    }
-                    
                     const formData = new FormData();
                     formData.append('file', file);
                     formData.append('upload_preset', uploadPreset);
@@ -252,35 +335,58 @@
                         if (e.lengthComputable) {
                             const percentComplete = Math.round((e.loaded / e.total) * 100);
                             progressBar.style.width = percentComplete + '%';
+                            progressText.textContent = `${percentComplete}%`;
                         }
                     };
                     
                     xhr.onload = function() {
                         if (xhr.status === 200) {
+                            const response = JSON.parse(xhr.responseText);
+                            
+                            // Mostrar miniatura
+                            const thumbnail = document.createElement('img');
+                            thumbnail.src = response.secure_url;
+                            thumbnailsContainer.appendChild(thumbnail);
+                            
                             uploadedCount++;
                             
+                            // Completado
                             if (uploadedCount === totalFiles) {
-                                showSuccess();
+                                uploadComplete();
                             }
                         } else {
                             const response = JSON.parse(xhr.responseText);
-                            alert(`Error al subir ${file.name}: ${response.error.message}`);
+                            uploadFailed(`Error al subir ${file.name}: ${response.error.message}`);
                         }
+                    };
+                    
+                    xhr.onerror = function() {
+                        uploadFailed(`Error de conexión al subir ${file.name}`);
                     };
                     
                     xhr.send(formData);
                 });
             }
             
-            function showSuccess() {
+            function uploadComplete() {
+                progressContainer.style.display = 'none';
                 successMessage.style.display = 'block';
-                progressBar.style.width = '0%';
+                submitButton.disabled = false;
+                submitButton.textContent = 'Enviar fotos';
                 fileInput.value = '';
+                dropArea.querySelector('p').textContent = 'Arrastra tus fotos aquí o haz clic para seleccionar';
                 
-                // Ocultar el mensaje después de 5 segundos
+                // Ocultar mensaje después de 8 segundos
                 setTimeout(() => {
                     successMessage.style.display = 'none';
-                }, 5000);
+                }, 8000);
+            }
+            
+            function uploadFailed(error) {
+                progressContainer.style.display = 'none';
+                showError(error);
+                submitButton.disabled = false;
+                submitButton.textContent = 'Enviar fotos';
             }
         });
     </script>
