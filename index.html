@@ -198,9 +198,9 @@
         <form id="upload-form">
             <div class="upload-area" id="drop-area">
                 <div class="upload-icon">📷</div>
-                <p id="upload-instructions">Haz clic para tomar una foto o seleccionar de tu galería</p>
+                <p id="upload-instructions">Haz clic para seleccionar fotos de tu galería o tomar una nueva foto</p>
                 <p><small>(Formatos: JPG, PNG | Máx. 10MB por foto)</small></p>
-                <input type="file" id="file-input" class="file-input" accept="image/*" capture="camera">
+                <input type="file" id="file-input" class="file-input" accept="image/*" multiple>
             </div>
             <button type="submit" class="upload-button" id="submit-button">Enviar fotos</button>
         </form>
@@ -228,15 +228,6 @@
             const cloudName = 'dyja1rhhr';
             const uploadPreset = 'boda2025_upload';
             
-            // Detectar si es móvil
-            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-            
-            // Cambiar texto si es móvil
-            if (isMobile) {
-                fileInput.setAttribute('capture', 'environment');
-                uploadInstructions.textContent = 'Toca aquí para tomar foto o seleccionar de galería';
-            }
-            
             // Prevenir el comportamiento por defecto para drag and drop
             ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
                 dropArea.addEventListener(eventName, preventDefaults, false);
@@ -247,34 +238,32 @@
                 e.stopPropagation();
             }
             
-            // Resaltar el área de drop (solo en desktop)
-            if (!isMobile) {
-                ['dragenter', 'dragover'].forEach(eventName => {
-                    dropArea.addEventListener(eventName, highlight, false);
-                });
-                
-                ['dragleave', 'drop'].forEach(eventName => {
-                    dropArea.addEventListener(eventName, unhighlight, false);
-                });
-                
-                function highlight() {
-                    dropArea.style.backgroundColor = '#fff0e6';
-                    dropArea.style.borderColor = '#b38a6d';
-                }
-                
-                function unhighlight() {
-                    dropArea.style.backgroundColor = '#fffaf5';
-                    dropArea.style.borderColor = '#d4a373';
-                }
-                
-                // Manejar archivos dropeados (solo desktop)
-                dropArea.addEventListener('drop', handleDrop, false);
-                
-                function handleDrop(e) {
-                    const dt = e.dataTransfer;
-                    const files = dt.files;
-                    handleFiles(files);
-                }
+            // Resaltar el área de drop
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropArea.addEventListener(eventName, highlight, false);
+            });
+            
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropArea.addEventListener(eventName, unhighlight, false);
+            });
+            
+            function highlight() {
+                dropArea.style.backgroundColor = '#fff0e6';
+                dropArea.style.borderColor = '#b38a6d';
+            }
+            
+            function unhighlight() {
+                dropArea.style.backgroundColor = '#fffaf5';
+                dropArea.style.borderColor = '#d4a373';
+            }
+            
+            // Manejar archivos dropeados
+            dropArea.addEventListener('drop', handleDrop, false);
+            
+            function handleDrop(e) {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                handleFiles(files);
             }
             
             // Click en el área para abrir el selector de archivos
@@ -292,7 +281,7 @@
             function handleFiles(files) {
                 uploadInstructions.textContent = `${files.length} foto(s) seleccionada(s)`;
                 
-                // Mostrar miniaturas preview (opcional)
+                // Mostrar miniaturas preview
                 thumbnailsContainer.innerHTML = '';
                 Array.from(files).forEach(file => {
                     if (file.type.startsWith('image/')) {
@@ -404,9 +393,7 @@
                 submitButton.disabled = false;
                 submitButton.textContent = 'Enviar fotos';
                 fileInput.value = '';
-                uploadInstructions.textContent = isMobile ? 
-                    'Toca aquí para tomar foto o seleccionar de galería' : 
-                    'Haz clic para tomar una foto o seleccionar de tu galería';
+                uploadInstructions.textContent = 'Haz clic para seleccionar fotos de tu galería o tomar una nueva foto';
                 
                 // Ocultar mensaje después de 8 segundos
                 setTimeout(() => {
