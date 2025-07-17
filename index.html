@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Álbum de nuestra boda</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Montserrat:wght@300;400&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: #f8f4f0;
+            color: #5a4a42;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 3rem auto;
+            background: #fff;
+            padding: 2.5rem;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+        }
+        
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.2rem;
+            margin-bottom: 1rem;
+            color: #8c6a56;
+            font-weight: 700;
+        }
+        
+        p.subtitle {
+            font-size: 1.1rem;
+            margin-bottom: 2.5rem;
+            color: #7a7a7a;
+        }
+        
+        .upload-area {
+            border: 2px dashed #d4a373;
+            padding: 2.5rem 1rem;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 1.5rem;
+            position: relative;
+            background: #fffaf5;
+        }
+        
+        .upload-area:hover {
+            background: #fff9f4;
+            border-color: #c08c5e;
+        }
+        
+        .upload-icon {
+            font-size: 3rem;
+            color: #d4a373;
+            margin-bottom: 1rem;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .upload-button {
+            background: #d4a373;
+            color: white;
+            border: none;
+            padding: 1rem 2.5rem;
+            font-size: 1rem;
+            border-radius: 30px;
+            margin-top: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+        }
+        
+        .upload-button:hover {
+            background: #c08c5e;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(192, 140, 94, 0.3);
+        }
+        
+        .success-message {
+            display: none;
+            color: #4a8c5e;
+            margin-top: 2rem;
+            padding: 1rem;
+            background: #f0f8f2;
+            border-radius: 8px;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        .progress-bar {
+            width: 0%;
+            height: 6px;
+            background: #d4a373;
+            border-radius: 3px;
+            margin-top: 1rem;
+            transition: width 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        footer {
+            margin-top: 3rem;
+            font-size: 0.8rem;
+            color: #999;
+        }
+        
+        /* Responsive */
+        @media (max-width: 640px) {
+            .container {
+                margin: 1rem;
+                padding: 1.5rem;
+            }
+            
+            h1 {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Gracias por acompañarnos</h1>
+        <p class="subtitle">Sube aquí tus fotos para nuestro álbum</p>
+        
+        <form id="upload-form">
+            <div class="upload-area" id="drop-area">
+                <div class="upload-icon">📷</div>
+                <p>Arrastra tus fotos aquí o haz clic para seleccionar</p>
+                <p><small>(Formatos: JPG, PNG | Máx. 10MB por foto)</small></p>
+                <input type="file" id="file-input" class="file-input" accept="image/jpeg, image/png" multiple>
+            </div>
+            <div class="progress-bar" id="progress-bar"></div>
+            <button type="submit" class="upload-button">Enviar fotos</button>
+        </form>
+        
+        <div class="success-message" id="success-message">
+            ¡Fotos subidas con éxito! Gracias por compartir este momento con nosotros.
+        </div>
+        
+        <footer>
+            Con amor, los novios
+        </footer>
+    </div>
+
+    <!-- Cloudinary Upload Script -->
+    <script src="https://upload-widget.cloudinary.com/global/all.js" type="text/javascript"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const dropArea = document.getElementById('drop-area');
+            const fileInput = document.getElementById('file-input');
+            const uploadForm = document.getElementById('upload-form');
+            const successMessage = document.getElementById('success-message');
+            const progressBar = document.getElementById('progress-bar');
+            
+            // Configuración de Cloudinary
+            const cloudName = 'dyja1rhhr';
+            const uploadPreset = 'boda2025_upload';
+            
+            // Prevenir el comportamiento por defecto para drag and drop
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropArea.addEventListener(eventName, preventDefaults, false);
+            });
+            
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            
+            // Resaltar el área de drop
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropArea.addEventListener(eventName, highlight, false);
+            });
+            
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropArea.addEventListener(eventName, unhighlight, false);
+            });
+            
+            function highlight() {
+                dropArea.style.backgroundColor = '#fff0e6';
+                dropArea.style.borderColor = '#b38a6d';
+            }
+            
+            function unhighlight() {
+                dropArea.style.backgroundColor = '#fffaf5';
+                dropArea.style.borderColor = '#d4a373';
+            }
+            
+            // Manejar archivos dropeados
+            dropArea.addEventListener('drop', handleDrop, false);
+            
+            function handleDrop(e) {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                fileInput.files = files;
+            }
+            
+            // Click en el área para abrir el selector de archivos
+            dropArea.addEventListener('click', () => {
+                fileInput.click();
+            });
+            
+            // Manejar el envío del formulario
+            uploadForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const files = fileInput.files;
+                if (files.length === 0) {
+                    alert('Por favor, selecciona al menos una foto.');
+                    return;
+                }
+                
+                uploadFiles(files);
+            });
+            
+            // Función para subir archivos a Cloudinary
+            function uploadFiles(files) {
+                progressBar.style.width = '0%';
+                
+                let uploadedCount = 0;
+                const totalFiles = files.length;
+                
+                Array.from(files).forEach(file => {
+                    // Verificar tamaño del archivo (max 10MB)
+                    if (file.size > 10 * 1024 * 1024) {
+                        alert(`El archivo "${file.name}" es demasiado grande (máximo 10MB)`);
+                        return;
+                    }
+                    
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    formData.append('upload_preset', uploadPreset);
+                    formData.append('cloud_name', cloudName);
+                    formData.append('folder', 'albumboda');
+                    
+                    const xhr = new XMLHttpRequest();
+                    xhr.open('POST', `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, true);
+                    
+                    xhr.upload.onprogress = function(e) {
+                        if (e.lengthComputable) {
+                            const percentComplete = Math.round((e.loaded / e.total) * 100);
+                            progressBar.style.width = percentComplete + '%';
+                        }
+                    };
+                    
+                    xhr.onload = function() {
+                        if (xhr.status === 200) {
+                            uploadedCount++;
+                            
+                            if (uploadedCount === totalFiles) {
+                                showSuccess();
+                            }
+                        } else {
+                            const response = JSON.parse(xhr.responseText);
+                            alert(`Error al subir ${file.name}: ${response.error.message}`);
+                        }
+                    };
+                    
+                    xhr.send(formData);
+                });
+            }
+            
+            function showSuccess() {
+                successMessage.style.display = 'block';
+                progressBar.style.width = '0%';
+                fileInput.value = '';
+                
+                // Ocultar el mensaje después de 5 segundos
+                setTimeout(() => {
+                    successMessage.style.display = 'none';
+                }, 5000);
+            }
+        });
+    </script>
+</body>
+</html>
